@@ -1,0 +1,11 @@
+.env
+__pycache__
+*.pyc
+*.pyo
+*.wav
+*.mp3
+tests/
+.pytest_cache
+venv/
+*.pdf
+*.md
