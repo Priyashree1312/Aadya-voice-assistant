@@ -10,3 +10,4 @@ livekit-plugins-deepgram>=0.8.0
 livekit-plugins-google>=0.8.0
 livekit-plugins-silero>=0.8.0
 pyyaml>=6.0
+livekit-api>=0.7.0
