@@ -39,7 +39,7 @@ async def entrypoint(ctx: JobContext):
             language="multi",
             model="nova-2",
         ),
-        llm=groq.LLM(
+        llm=google.LLM(
             api_key=os.getenv("GEMINI_API_KEY"),
             model="gemini-2.0-flash",
         ),
