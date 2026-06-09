@@ -9,7 +9,7 @@ load_dotenv()
 
 from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli
 from livekit.agents import Agent, AgentSession
-from livekit.plugins import deepgram, groq
+from livekit.plugins import deepgram, google
 
 from language_detector import LanguageDetector
 from scope_validator import is_in_scope, get_redirect
@@ -40,8 +40,8 @@ async def entrypoint(ctx: JobContext):
             model="nova-2",
         ),
         llm=groq.LLM(
-            api_key=os.getenv("GROQ_API_KEY"),
-            model="llama-3.3-70b-versatile",
+            api_key=os.getenv("GEMINI_API_KEY"),
+            model="gemini-2.0-flash",
         ),
         tts=SarvamTTS(language_detector=agent.lang_detector),
     )
@@ -72,4 +72,9 @@ async def entrypoint(ctx: JobContext):
     )
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, agent_name="Aadya"))
+    cli.run_app(WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        agent_name="Aadya",
+        load_threshold=1.0,
+        num_idle_processes=1,
+    ))
