@@ -1,16 +1,12 @@
 import asyncio
 import os
 import sys
-
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from dotenv import load_dotenv
 load_dotenv()
-
-from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli
+from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, JobRequest
 from livekit.agents import Agent, AgentSession
 from livekit.plugins import deepgram, google
-
 from language_detector import LanguageDetector
 from scope_validator import is_in_scope, get_redirect
 from conversation_manager import ConversationManager
@@ -28,11 +24,12 @@ class PresaleAgent(Agent):
         self.lang_detector = LanguageDetector()
         self.conv_manager = ConversationManager(scenario="presale")
 
+async def request_fnc(req: JobRequest):
+    await req.accept()
+
 async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-
     agent = PresaleAgent()
-
     session = AgentSession(
         stt=deepgram.STT(
             api_key=os.getenv("DEEPGRAM_API_KEY"),
@@ -66,15 +63,18 @@ async def entrypoint(ctx: JobContext):
         agent.conv_manager.save()
 
     await session.start(room=ctx.room, agent=agent)
-
     await session.generate_reply(
-        instructions="Greet the user warmly. Say: Hello! I am Aadya, your presales assistant. How can I help you today?"
+        instructions="Greet the user warmly. Say: Hello! I am Aadya, your voice screening assistant. How can I help you today?"
     )
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(
         entrypoint_fnc=entrypoint,
+        request_fnc=request_fnc,
         agent_name="Aadya",
         load_threshold=1.0,
         num_idle_processes=1,
+        ws_url=os.getenv("LIVEKIT_URL"),
+        api_key=os.getenv("LIVEKIT_API_KEY"),
+        api_secret=os.getenv("LIVEKIT_API_SECRET"),
     ))
