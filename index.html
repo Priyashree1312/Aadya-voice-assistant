@@ -4,190 +4,106 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Aadya — Voice Screening Assistant</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #060D1A; color: #E2E8F0; min-height: 100vh; display: flex; flex-direction: column; }
-
-  /* topbar */
-  .topbar { background: #0F172A; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1E293B; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-icon { width: 38px; height: 38px; border-radius: 10px; background: #534AB7; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .brand-name { font-size: 16px; font-weight: 600; color: #F1F5F9; }
-  .brand-tag { font-size: 11px; color: #64748B; margin-top: 1px; }
-  .live-pill { display: flex; align-items: center; gap: 6px; background: #0C1A12; border: 1px solid #1D9E75; border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #5DCAA5; }
-  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; animation: blink 1.5s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
-
-  /* main layout */
-  .main { display: grid; grid-template-columns: 1fr 270px; flex: 1; }
-  .center { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; gap: 22px; border-right: 1px solid #1E293B; }
-  .sidebar { padding: 24px 20px; background: #080F1C; display: flex; flex-direction: column; gap: 14px; }
-
-  /* orb */
-  .orb-wrap { position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .ring { position: absolute; border-radius: 50%; border: 1.5px solid; }
-  .ring1 { width: 150px; height: 150px; border-color: #534AB7; animation: spin 7s linear infinite; }
-  .ring2 { width: 122px; height: 122px; border-color: #1D9E75; border-style: dashed; animation: spin 4.5s linear infinite reverse; }
-  .ring3 { width: 96px; height: 96px; border-color: #D4537E; animation: spin 9s linear infinite; }
-  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-  .orb { width: 72px; height: 72px; border-radius: 50%; background: #3C3489; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #CEBBF6; transition: all 0.3s; z-index: 2; }
-  .orb.active { background: #0F6E56; color: #9FE1CB; }
-
-  .state-lbl { font-size: 13px; color: #64748B; letter-spacing: 0.05em; }
-
-  /* wave */
-  .wave { display: flex; align-items: center; gap: 3px; height: 30px; }
-  .wb { width: 3px; border-radius: 2px; background: #1E293B; transition: height 0.12s, background 0.12s; }
-  .wb.on { background: #7F77DD; }
-
-  /* button */
-  .cta { padding: 11px 40px; border-radius: 10px; border: 1.5px solid #534AB7; background: transparent; color: #AFA9EC; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
-  .cta:hover { background: #1E1B4B; }
-  .cta.live { border-color: #1D9E75; color: #5DCAA5; background: #0C1A12; }
-
-  /* lang chips */
-  .lang-row { display: flex; gap: 7px; }
-  .lc { font-size: 11px; padding: 3px 11px; border-radius: 20px; border: 1px solid #1E293B; color: #475569; cursor: pointer; transition: all 0.15s; }
-  .lc.on { border-color: #7F77DD; background: #1A1740; color: #AFA9EC; }
-
-  /* transcript */
-  .transcript { width: 100%; background: #0F172A; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #64748B; line-height: 1.75; min-height: 72px; border-left: 3px solid #3C3489; transition: all 0.3s; }
-  .transcript.active { border-left-color: #1D9E75; color: #94A3B8; }
-
-  /* sidebar labels */
-  .slbl { font-size: 10px; font-weight: 600; color: #334155; letter-spacing: 0.1em; text-transform: uppercase; }
-
-  /* metric cards */
-  .mcard { background: #0F172A; border-radius: 10px; padding: 12px 14px; border: 1px solid #1E293B; }
-  .mcard-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .mcard-lbl { font-size: 11px; color: #475569; }
-  .mcard-val { font-size: 20px; font-weight: 600; }
-  .purple { color: #AFA9EC; }
-  .teal   { color: #5DCAA5; }
-  .pink   { color: #ED93B1; }
-  .amber  { color: #EF9F27; }
-  .track { height: 3px; background: #1E293B; border-radius: 2px; margin-top: 8px; overflow: hidden; }
-  .fill  { height: 100%; border-radius: 2px; width: 0%; transition: width 0.7s ease; }
-
-  /* scenario pills */
-  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .pill { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid #1E293B; color: #475569; cursor: pointer; transition: all 0.15s; }
-  .pill.on { border-color: #D4537E; background: #1A0812; color: #ED93B1; }
-
-  /* powered by */
-  .pw-list { display: flex; flex-direction: column; gap: 7px; }
-  .pw-row { display: flex; align-items: center; gap: 9px; font-size: 12px; color: #475569; }
-  .pw-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-  /* footer */
-  .footer { background: #0F172A; padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1E293B; }
-  .ft { font-size: 11px; color: #334155; }
-  .ft-link { font-size: 11px; color: #7F77DD; text-decoration: none; }
-  .ft-link:hover { text-decoration: underline; }
-
-  /* section label inside center */
-  .clbl { width: 100%; font-size: 10px; font-weight: 600; color: #334155; letter-spacing: 0.1em; text-transform: uppercase; }
-
-  @media (max-width: 700px) {
-    .main { grid-template-columns: 1fr; }
-    .center { border-right: none; border-bottom: 1px solid #1E293B; }
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #060D1A; color: #E2E8F0; min-height: 100vh; display: flex; flex-direction: column; }
+.topbar { background: #0F172A; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1E293B; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 38px; height: 38px; border-radius: 10px; background: #534AB7; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.brand-name { font-size: 16px; font-weight: 600; color: #F1F5F9; }
+.brand-tag { font-size: 11px; color: #64748B; margin-top: 1px; }
+.live-pill { display: flex; align-items: center; gap: 6px; background: #0C1A12; border: 1px solid #1D9E75; border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #5DCAA5; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.main { display: grid; grid-template-columns: 1fr 270px; flex: 1; }
+.center { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; gap: 22px; border-right: 1px solid #1E293B; }
+.sidebar { padding: 24px 20px; background: #080F1C; display: flex; flex-direction: column; gap: 14px; }
+.orb-wrap { position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ring { position: absolute; border-radius: 50%; border: 1.5px solid; }
+.ring1 { width: 150px; height: 150px; border-color: #534AB7; animation: spin 7s linear infinite; }
+.ring2 { width: 122px; height: 122px; border-color: #1D9E75; border-style: dashed; animation: spin 4.5s linear infinite reverse; }
+.ring3 { width: 96px; height: 96px; border-color: #D4537E; animation: spin 9s linear infinite; }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.orb { width: 72px; height: 72px; border-radius: 50%; background: #3C3489; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #CEBBF6; transition: all 0.3s; z-index: 2; }
+.orb.active { background: #0F6E56; color: #9FE1CB; }
+.orb.listening { background: #7F77DD; color: #fff; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.state-lbl { font-size: 13px; color: #64748B; letter-spacing: 0.05em; }
+.wave { display: flex; align-items: center; gap: 3px; height: 30px; }
+.wb { width: 3px; border-radius: 2px; background: #1E293B; transition: height 0.12s, background 0.12s; }
+.wb.on { background: #7F77DD; }
+.cta { padding: 11px 40px; border-radius: 10px; border: 1.5px solid #534AB7; background: transparent; color: #AFA9EC; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.cta:hover { background: #1E1B4B; }
+.cta.live { border-color: #E24B4A; color: #F09595; background: #1A0808; }
+.cta:disabled { opacity: 0.5; cursor: not-allowed; }
+.lang-row { display: flex; gap: 7px; }
+.lc { font-size: 11px; padding: 3px 11px; border-radius: 20px; border: 1px solid #1E293B; color: #475569; transition: all 0.15s; }
+.lc.on { border-color: #7F77DD; background: #1A1740; color: #AFA9EC; }
+.transcript { width: 100%; background: #0F172A; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #64748B; line-height: 1.75; min-height: 80px; border-left: 3px solid #3C3489; transition: all 0.3s; }
+.transcript.active { border-left-color: #1D9E75; color: #94A3B8; }
+.error-box { width: 100%; background: #1A0808; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #F09595; border-left: 3px solid #E24B4A; display: none; }
+.slbl { font-size: 10px; font-weight: 600; color: #334155; letter-spacing: 0.1em; text-transform: uppercase; }
+.mcard { background: #0F172A; border-radius: 10px; padding: 12px 14px; border: 1px solid #1E293B; }
+.mcard-top { display: flex; justify-content: space-between; align-items: baseline; }
+.mcard-lbl { font-size: 11px; color: #475569; }
+.mcard-val { font-size: 20px; font-weight: 600; }
+.purple{color:#AFA9EC} .teal{color:#5DCAA5} .pink{color:#ED93B1} .amber{color:#EF9F27}
+.track { height: 3px; background: #1E293B; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.fill { height: 100%; border-radius: 2px; width: 0%; transition: width 0.7s ease; }
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid #1E293B; color: #475569; cursor: pointer; transition: all 0.15s; }
+.pill.on { border-color: #D4537E; background: #1A0812; color: #ED93B1; }
+.pw-list { display: flex; flex-direction: column; gap: 7px; }
+.pw-row { display: flex; align-items: center; gap: 9px; font-size: 12px; color: #475569; }
+.pw-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.footer { background: #0F172A; padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1E293B; }
+.ft { font-size: 11px; color: #334155; }
+.ft-link { font-size: 11px; color: #7F77DD; text-decoration: none; }
+.clbl { width: 100%; font-size: 10px; font-weight: 600; color: #334155; letter-spacing: 0.1em; text-transform: uppercase; }
 </style>
 </head>
-<body>
 
+<body>
 <div class="topbar">
   <div class="brand">
     <div class="brand-icon">🎙️</div>
-    <div>
-      <div class="brand-name">Aadya</div>
-      <div class="brand-tag">Voice Screening Assistant</div>
-    </div>
+    <div><div class="brand-name">Aadya</div><div class="brand-tag">Voice Screening Assistant</div></div>
   </div>
-  <div class="live-pill">
-    <div class="live-dot"></div>
-    <span id="liveText">Standby</span>
-  </div>
+  <div class="live-pill"><div class="live-dot"></div><span id="liveText">Standby</span></div>
 </div>
-
 <div class="main">
   <div class="center">
-
     <div class="orb-wrap" onclick="toggle()">
-      <div class="ring ring1"></div>
-      <div class="ring ring2"></div>
-      <div class="ring ring3"></div>
+      <div class="ring ring1"></div><div class="ring ring2"></div><div class="ring ring3"></div>
       <div class="orb" id="orb">🎤</div>
     </div>
-
     <div class="state-lbl" id="stateLbl">Tap to begin session</div>
-
-    <div class="wave" id="wave">
-      <div class="wb" style="height:6px"></div>
-      <div class="wb" style="height:14px"></div>
-      <div class="wb" style="height:9px"></div>
-      <div class="wb" style="height:22px"></div>
-      <div class="wb" style="height:11px"></div>
-      <div class="wb" style="height:18px"></div>
-      <div class="wb" style="height:7px"></div>
-      <div class="wb" style="height:15px"></div>
-      <div class="wb" style="height:10px"></div>
-      <div class="wb" style="height:24px"></div>
-      <div class="wb" style="height:8px"></div>
-      <div class="wb" style="height:17px"></div>
+    <div class="wave">
+      <div class="wb" style="height:6px"></div><div class="wb" style="height:14px"></div>
+      <div class="wb" style="height:9px"></div><div class="wb" style="height:22px"></div>
+      <div class="wb" style="height:11px"></div><div class="wb" style="height:18px"></div>
+      <div class="wb" style="height:7px"></div><div class="wb" style="height:15px"></div>
+      <div class="wb" style="height:10px"></div><div class="wb" style="height:24px"></div>
+      <div class="wb" style="height:8px"></div><div class="wb" style="height:17px"></div>
     </div>
-
     <button class="cta" id="ctaBtn" onclick="toggle()">Connect to Aadya</button>
-
+    <div class="error-box" id="errorBox"></div>
     <div class="clbl">Detected language</div>
     <div class="lang-row">
       <div class="lc on" id="lc-en">English</div>
       <div class="lc" id="lc-hi">Hindi</div>
       <div class="lc" id="lc-od">Odia</div>
     </div>
-
     <div class="clbl">Live transcript</div>
-    <div class="transcript" id="transcript">
-      Aadya will transcribe your conversation here in real time...
-    </div>
-
+    <div class="transcript" id="transcript">Aadya will transcribe your conversation here in real time...</div>
   </div>
-
   <div class="sidebar">
     <div class="slbl">Live metrics</div>
-
-    <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-lbl">Duration</span>
-        <span class="mcard-val purple" id="dur">00:00</span>
-      </div>
-      <div class="track"><div class="fill" id="durFill" style="background:#534AB7"></div></div>
-    </div>
-
-    <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-lbl">Conversation turns</span>
-        <span class="mcard-val teal" id="turns">0</span>
-      </div>
-      <div class="track"><div class="fill" id="turnsFill" style="background:#1D9E75"></div></div>
-    </div>
-
-    <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-lbl">Sentiment</span>
-        <span class="mcard-val pink" id="sentiment">—</span>
-      </div>
-      <div class="track"><div class="fill" id="sentFill" style="background:#D4537E"></div></div>
-    </div>
-
-    <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-lbl">Latency</span>
-        <span class="mcard-val amber" id="latency">— ms</span>
-      </div>
-      <div class="track"><div class="fill" id="latFill" style="background:#BA7517"></div></div>
-    </div>
-
+    <div class="mcard"><div class="mcard-top"><span class="mcard-lbl">Duration</span><span class="mcard-val purple" id="dur">00:00</span></div><div class="track"><div class="fill" id="durFill" style="background:#534AB7"></div></div></div>
+    <div class="mcard"><div class="mcard-top"><span class="mcard-lbl">Participants</span><span class="mcard-val teal" id="participants">0</span></div><div class="track"><div class="fill" id="partFill" style="background:#1D9E75"></div></div></div>
+    <div class="mcard"><div class="mcard-top"><span class="mcard-lbl">Agent status</span><span class="mcard-val pink" id="agentStatus">—</span></div><div class="track"><div class="fill" id="agentFill" style="background:#D4537E"></div></div></div>
+    <div class="mcard"><div class="mcard-top"><span class="mcard-lbl">Connection</span><span class="mcard-val amber" id="connStatus">—</span></div><div class="track"><div class="fill" id="connFill" style="background:#BA7517"></div></div></div>
     <div class="slbl" style="margin-top:4px">Scenario</div>
     <div class="pill-row">
       <div class="pill on" onclick="setPill(this)">HR screening</div>
@@ -195,7 +111,6 @@
       <div class="pill" onclick="setPill(this)">Support</div>
       <div class="pill" onclick="setPill(this)">Onboarding</div>
     </div>
-
     <div class="slbl" style="margin-top:4px">Powered by</div>
     <div class="pw-list">
       <div class="pw-row"><div class="pw-dot" style="background:#7F77DD"></div>LiveKit · WebRTC</div>
@@ -205,105 +120,94 @@
     </div>
   </div>
 </div>
-
 <div class="footer">
   <span class="ft">Aadya · Priyashree Panda · 2026</span>
   <a class="ft-link" href="https://aadya-voice-assistant.onrender.com">aadya-voice-assistant.onrender.com ↗</a>
 </div>
-
 <script>
-let on=false,secs=0,turns=0,tIdx=0,timer=null,wTimer=null;
-const lines=[
-  "Hello! I am Aadya, your voice screening assistant. How can I help?",
-  "Can you walk me through your experience with deep learning?",
-  "Which ML frameworks have you worked with most?",
-  "Have you deployed any models to production environments?",
-  "Tell me about a challenging AI problem you solved recently.",
-  "What is your experience with transformer-based architectures?"
-];
-const sentiments=[{t:"Positive",p:80},{t:"Engaged",p:70},{t:"Neutral",p:50},{t:"Curious",p:65}];
-const wHeights=[6,14,9,22,11,18,7,15,10,24,8,17];
-
-function toggle(){
-  on=!on;
-  const orb=document.getElementById('orb');
-  const btn=document.getElementById('ctaBtn');
-  const lbl=document.getElementById('stateLbl');
-  const live=document.getElementById('liveText');
-  const tr=document.getElementById('transcript');
-  if(on){
-    orb.classList.add('active');
-    orb.textContent='🔴';
-    btn.classList.add('live');
-    btn.textContent='End session';
-    lbl.textContent='Listening...';
-    live.textContent='Live';
-    tr.classList.add('active');
-    document.getElementById('latency').textContent=Math.round(75+Math.random()*40)+' ms';
-    document.getElementById('latFill').style.width='45%';
-    timer=setInterval(tick,1000);
-    wTimer=setInterval(animWave,130);
-  } else {
-    orb.classList.remove('active');
-    orb.textContent='🎤';
-    btn.classList.remove('live');
-    btn.textContent='Connect to Aadya';
-    lbl.textContent='Tap to begin session';
-    live.textContent='Standby';
-    tr.classList.remove('active');
-    tr.textContent='Aadya will transcribe your conversation here in real time...';
-    clearInterval(timer); clearInterval(wTimer);
-    secs=0; turns=0; tIdx=0;
-    document.getElementById('dur').textContent='00:00';
-    document.getElementById('turns').textContent='0';
-    document.getElementById('sentiment').textContent='—';
-    document.getElementById('latency').textContent='— ms';
-    ['durFill','turnsFill','sentFill','latFill'].forEach(id=>document.getElementById(id).style.width='0%');
-    resetWave();
-    ['lc-en','lc-hi','lc-od'].forEach(id=>document.getElementById(id).classList.remove('on'));
-    document.getElementById('lc-en').classList.add('on');
-  }
+const LC = window.LivekitClient;
+let room=null,connected=false,secs=0,timer=null,wTimer=null;
+const wH=[6,14,9,22,11,18,7,15,10,24,8,17];
+async function toggle(){connected?await disconnect():await connect();}
+async function connect(){
+  const btn=document.getElementById('ctaBtn'),lbl=document.getElementById('stateLbl'),err=document.getElementById('errorBox');
+  btn.disabled=true;btn.textContent='Connecting...';lbl.textContent='Fetching token...';err.style.display='none';
+  try{
+    const res=await fetch('/token');
+    if(!res.ok)throw new Error('Token fetch failed: '+res.status);
+    const{token,url}=await res.json();
+    lbl.textContent='Connecting to LiveKit...';
+    room=new LC.Room({adaptiveStream:true,dynacast:true});
+    room.on(LC.RoomEvent.Connected,onConnected);
+    room.on(LC.RoomEvent.Disconnected,onDisconnected);
+    room.on(LC.RoomEvent.ParticipantConnected,onParticipantJoined);
+    room.on(LC.RoomEvent.ParticipantDisconnected,onParticipantLeft);
+    room.on(LC.RoomEvent.TrackSubscribed,onTrackSubscribed);
+    room.on(LC.RoomEvent.ActiveSpeakersChanged,onSpeakerChange);
+    await room.connect(url,token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+  }catch(err2){showError('Connection failed: '+err2.message);resetUI();btn.disabled=false;}
 }
-
-function tick(){
-  secs++;
-  const m=String(Math.floor(secs/60)).padStart(2,'0');
-  const s=String(secs%60).padStart(2,'0');
-  document.getElementById('dur').textContent=m+':'+s;
-  document.getElementById('durFill').style.width=Math.min(Math.round((secs/120)*100),100)+'%';
-  if(secs%6===0){
-    turns++;
-    document.getElementById('turns').textContent=turns;
-    document.getElementById('turnsFill').style.width=Math.min(turns*10,100)+'%';
-    document.getElementById('transcript').textContent=lines[tIdx%lines.length];
-    tIdx++;
-    const langs=['lc-en','lc-hi','lc-od'];
-    langs.forEach(id=>document.getElementById(id).classList.remove('on'));
-    document.getElementById(langs[Math.floor(Math.random()*3)]).classList.add('on');
-    const sv=sentiments[Math.floor(Math.random()*sentiments.length)];
-    document.getElementById('sentiment').textContent=sv.t;
-    document.getElementById('sentFill').style.width=sv.p+'%';
-    document.getElementById('latency').textContent=Math.round(60+Math.random()*70)+' ms';
-    document.getElementById('latFill').style.width=Math.round(30+Math.random()*55)+'%';
-  }
+function onConnected(){
+  connected=true;
+  document.getElementById('ctaBtn').disabled=false;
+  document.getElementById('ctaBtn').classList.add('live');
+  document.getElementById('ctaBtn').textContent='End session';
+  document.getElementById('stateLbl').textContent='Connected — speak now';
+  document.getElementById('orb').classList.add('active');
+  document.getElementById('orb').textContent='🔴';
+  document.getElementById('liveText').textContent='Live';
+  document.getElementById('connStatus').textContent='Good';
+  document.getElementById('connFill').style.width='80%';
+  document.getElementById('agentStatus').textContent='Waiting';
+  document.getElementById('agentFill').style.width='40%';
+  document.getElementById('transcript').classList.add('active');
+  document.getElementById('transcript').textContent='Connected! Waiting for Aadya to join...';
+  timer=setInterval(()=>{secs++;document.getElementById('dur').textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');document.getElementById('durFill').style.width=Math.min(Math.round((secs/120)*100),100)+'%';},1000);
+  wTimer=setInterval(animWave,130);updateParticipants();
 }
-
-function animWave(){
-  document.querySelectorAll('.wb').forEach(b=>{
-    b.classList.add('on');
-    b.style.height=Math.round(4+Math.random()*22)+'px';
-  });
+function onDisconnected(){connected=false;resetUI();}
+function onParticipantJoined(p){
+  updateParticipants();
+  document.getElementById('agentStatus').textContent='Active';
+  document.getElementById('agentFill').style.width='100%';
+  document.getElementById('transcript').textContent='Aadya has joined! She will greet you now...';
 }
-function resetWave(){
-  document.querySelectorAll('.wb').forEach((b,i)=>{
-    b.classList.remove('on');
-    b.style.height=wHeights[i]+'px';
-  });
+function onParticipantLeft(){updateParticipants();}
+function onTrackSubscribed(track){
+  if(track.kind===LC.Track.Kind.Audio){const el=track.attach();el.style.display='none';document.body.appendChild(el);}
 }
-function setPill(el){
-  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
+function onSpeakerChange(speakers){
+  const orb=document.getElementById('orb'),lbl=document.getElementById('stateLbl');
+  if(speakers.length>0){
+    const agentSpeaking=speakers.some(s=>s.identity!==(room&&room.localParticipant?room.localParticipant.identity:''));
+    if(agentSpeaking){orb.classList.remove('listening');orb.classList.add('active');lbl.textContent='Aadya is speaking...';document.getElementById('agentStatus').textContent='Speaking';}
+    else{orb.classList.remove('active');orb.classList.add('listening');lbl.textContent='Listening to you...';}
+  }else{orb.classList.remove('listening');orb.classList.add('active');lbl.textContent='Connected — speak now';document.getElementById('agentStatus').textContent='Active';}
 }
+function updateParticipants(){if(!room)return;const c=room.remoteParticipants.size+1;document.getElementById('participants').textContent=c;document.getElementById('partFill').style.width=Math.min(c*50,100)+'%';}
+async function disconnect(){if(room){await room.disconnect();room=null;}}
+function showError(msg){const b=document.getElementById('errorBox');b.textContent='⚠️ '+msg;b.style.display='block';}
+function resetUI(){
+  const btn=document.getElementById('ctaBtn'),orb=document.getElementById('orb');
+  btn.disabled=false;btn.classList.remove('live');btn.textContent='Connect to Aadya';
+  orb.classList.remove('active','listening');orb.textContent='🎤';
+  document.getElementById('stateLbl').textContent='Tap to begin session';
+  document.getElementById('liveText').textContent='Standby';
+  document.getElementById('transcript').classList.remove('active');
+  document.getElementById('transcript').textContent='Aadya will transcribe your conversation here in real time...';
+  ['connStatus','agentStatus'].forEach(id=>document.getElementById(id).textContent='—');
+  ['connFill','agentFill','durFill','partFill'].forEach(id=>document.getElementById(id).style.width='0%');
+  clearInterval(timer);clearInterval(wTimer);secs=0;
+  document.getElementById('dur').textContent='00:00';
+  document.getElementById('participants').textContent='0';
+  resetWave();
+  ['lc-en','lc-hi','lc-od'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('lc-en').classList.add('on');
+}
+function animWave(){document.querySelectorAll('.wb').forEach(b=>{b.classList.add('on');b.style.height=Math.round(4+Math.random()*22)+'px';});}
+function resetWave(){document.querySelectorAll('.wb').forEach((b,i)=>{b.classList.remove('on');b.style.height=wH[i]+'px';});}
+function setPill(el){document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
 </script>
 </body>
 </html>
